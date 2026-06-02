@@ -25,7 +25,7 @@ go run main.go
 ```
 
 4. Select workers, timeout, and retries when prompted
-5. After the scan completes, results are auto-pushed to GitHub
+5. After the scan completes, choose whether to push results to GitHub
 
 ## Subscription URL
 
