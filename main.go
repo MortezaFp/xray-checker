@@ -232,9 +232,10 @@ func main() {
 	fmt.Printf(" \x1b[90mSub URL:\x1b[0m  %s\n", subOutputFile)
 
 	// --- Push to GitHub? ---
-	pushChoice := promptChoice(reader, "Push to GitHub?", []choice{
-		{"Yes", 1}, {"No", 0}}, 0)
-	if pushChoice == 0 {
+	fmt.Print("\n\x1b[36mPush to GitHub?\x1b[0m [\x1b[32mY\x1b[0mes/\x1b[31mN\x1b[0mo] (default: Yes): ")
+	pushInput, _ := reader.ReadString('\n')
+	pushInput = strings.TrimSpace(strings.ToLower(pushInput))
+	if pushInput == "n" || pushInput == "no" {
 		fmt.Println("\x1b[90m[*] Skipping push.\x1b[0m")
 		return
 	}
@@ -486,11 +487,11 @@ func testOnce(xrayPath string, shareLink string, basePort int, timeoutSec int, t
 	// Check selected targets
 	if testMode == 3 {
 		return check("http://cp.cloudflare.com/generate_204") &&
-			check("https://www.google.com/generate_204")
+			check("http://www.google.com/generate_204")
 	} else if testMode == 1 {
 		return check("http://cp.cloudflare.com/generate_204")
 	} else {
-		return check("https://www.google.com/generate_204")
+		return check("http://www.google.com/generate_204")
 	}
 }
 
