@@ -209,6 +209,12 @@ func main() {
 
 	totalTime := time.Since(startTime)
 
+	// --- Write base64 encoded sub file ---
+	subOutputFile := "valid_base64.txt"
+	rawContent, _ := os.ReadFile(outputFile)
+	b64Content := base64.StdEncoding.EncodeToString(rawContent)
+	_ = os.WriteFile(subOutputFile, []byte(b64Content), 0644)
+
 	clearScreen()
 	fmt.Printf("\x1b[36m\x1b[1m ====== SCAN COMPLETE ======\x1b[0m\n")
 	fmt.Printf(" \x1b[90mChecked:\x1b[0m %d\n", total)
@@ -219,6 +225,34 @@ func main() {
 	}
 	fmt.Printf(" \x1b[90mTime:\x1b[0m    %s\n", formatDuration(totalTime))
 	fmt.Printf(" \x1b[90mOutput:\x1b[0m  %s\n", outputFile)
+	fmt.Printf(" \x1b[90mSub URL:\x1b[0m  %s\n", subOutputFile)
+
+	// --- Auto commit & push ---
+	fmt.Println()
+	gitAdd := exec.Command("git", "add", outputFile, subOutputFile)
+	gitAdd.Dir, _ = filepath.Abs(".")
+	if err := gitAdd.Run(); err != nil {
+		fmt.Printf("[-] git add failed: %v\n", err)
+		return
+	}
+
+	commitMsg := fmt.Sprintf("update valid configs [%s]", time.Now().Format("2006-01-02 15:04:05"))
+	gitCommit := exec.Command("git", "commit", "-m", commitMsg)
+	gitCommit.Dir, _ = filepath.Abs(".")
+	if out, err := gitCommit.CombinedOutput(); err != nil {
+		fmt.Printf("[-] git commit failed: %v\n%s", err, out)
+		return
+	}
+
+	gitPush := exec.Command("git", "push", "origin", "master")
+	gitPush.Dir, _ = filepath.Abs(".")
+	if out, err := gitPush.CombinedOutput(); err != nil {
+		fmt.Printf("[-] git push failed: %v\n%s", err, out)
+		return
+	}
+
+	fmt.Printf("\x1b[32m[+] Pushed to GitHub!\x1b[0m\n")
+	fmt.Printf(" \x1b[90mSubscription:\x1b[0m https://raw.githubusercontent.com/MortezaFp/xray-checker/master/valid_base64.txt\n")
 }
 
 func readConfigsFromFile(filePath string) []string {
