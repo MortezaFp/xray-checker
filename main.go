@@ -100,11 +100,11 @@ func main() {
 		{"1 (no retry)", 1}, {"3 (balanced)", 3}, {"5 (forgiving)", 5}}, 1)
 	fmt.Printf("\x1b[6A\x1b[J")
 	testMode := promptChoice(reader, "Test targets", []choice{
-		{"Cloudflare + Google (both)", 3}, {"Cloudflare only", 1}, {"Google only", 2}}, 0)
+		{"Cloudflare HTTPS + Google HTTPS (both)", 3}, {"Cloudflare HTTPS only", 1}, {"Google HTTPS only", 2}}, 0)
 
 	// --- Launch ---
 	clearScreen()
-	targetNames := map[int]string{1: "Cloudflare HTTP", 2: "Google HTTPS", 3: "Cloudflare HTTP + Google HTTPS"}
+	targetNames := map[int]string{1: "Cloudflare HTTPS", 2: "Google HTTPS", 3: "Cloudflare HTTPS + Google HTTPS"}
 	fmt.Printf("\x1b[36m\x1b[1m XRAY BATCH VERIFIER\x1b[0m\n")
 	fmt.Printf(" \x1b[90mWorkers:\x1b[0m %d  \x1b[90mTimeout:\x1b[0m %ds  \x1b[90mRetries:\x1b[0m %d\n", numWorkers, timeoutSec, retries)
 	fmt.Printf(" \x1b[90mTesting:\x1b[0m %s\n", targetNames[testMode])
@@ -487,12 +487,12 @@ func testOnce(xrayPath string, shareLink string, basePort int, timeoutSec int, t
 
 	// Check selected targets
 	if testMode == 3 {
-		return check("http://cp.cloudflare.com/generate_204") &&
-			check("http://www.google.com/generate_204")
+		return check("https://cp.cloudflare.com/generate_204") &&
+			check("https://www.google.com/generate_204")
 	} else if testMode == 1 {
-		return check("http://cp.cloudflare.com/generate_204")
+		return check("https://cp.cloudflare.com/generate_204")
 	} else {
-		return check("http://www.google.com/generate_204")
+		return check("https://www.google.com/generate_204")
 	}
 }
 
