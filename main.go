@@ -98,12 +98,16 @@ func main() {
 	fmt.Printf("\x1b[6A\x1b[J")
 	retries := promptChoice(reader, "Retries", []choice{
 		{"1 (no retry)", 1}, {"3 (balanced)", 3}, {"5 (forgiving)", 5}}, 1)
+	fmt.Printf("\x1b[6A\x1b[J")
+	testMode := promptChoice(reader, "Test targets", []choice{
+		{"Cloudflare + Google (both)", 3}, {"Cloudflare only", 1}, {"Google only", 2}}, 0)
 
 	// --- Launch ---
 	clearScreen()
+	targetNames := map[int]string{1: "Cloudflare HTTP", 2: "Google HTTPS", 3: "Cloudflare HTTP + Google HTTPS"}
 	fmt.Printf("\x1b[36m\x1b[1m XRAY BATCH VERIFIER\x1b[0m\n")
 	fmt.Printf(" \x1b[90mWorkers:\x1b[0m %d  \x1b[90mTimeout:\x1b[0m %ds  \x1b[90mRetries:\x1b[0m %d\n", numWorkers, timeoutSec, retries)
-	fmt.Printf(" \x1b[90mTesting:\x1b[0m Cloudflare HTTP + Google HTTPS\n")
+	fmt.Printf(" \x1b[90mTesting:\x1b[0m %s\n", targetNames[testMode])
 	fmt.Println()
 
 	// --- Worker Infrastructure ---
@@ -125,7 +129,7 @@ func main() {
 			localSocksPort := 25000 + (workerID * 10)
 
 			for rawConfig := range jobs {
-				ok, delay := testRealTraffic(xrayBin, rawConfig, localSocksPort, timeoutSec, retries)
+				ok, delay := testRealTraffic(xrayBin, rawConfig, localSocksPort, timeoutSec, retries, testMode)
 
 				atomic.AddInt32(&processedCount, 1)
 
@@ -415,10 +419,10 @@ func extractShareLink(line string) string {
 	return ""
 }
 
-func testRealTraffic(xrayPath string, shareLink string, basePort int, timeoutSec int, retries int) (bool, time.Duration) {
+func testRealTraffic(xrayPath string, shareLink string, basePort int, timeoutSec int, retries int, testMode int) (bool, time.Duration) {
 	for attempt := 1; attempt <= retries; attempt++ {
 		start := time.Now()
-		ok := testOnce(xrayPath, shareLink, basePort, timeoutSec)
+		ok := testOnce(xrayPath, shareLink, basePort, timeoutSec, testMode)
 		elapsed := time.Since(start)
 
 		if ok {
@@ -432,7 +436,7 @@ func testRealTraffic(xrayPath string, shareLink string, basePort int, timeoutSec
 	return false, 0
 }
 
-func testOnce(xrayPath string, shareLink string, basePort int, timeoutSec int) bool {
+func testOnce(xrayPath string, shareLink string, basePort int, timeoutSec int, testMode int) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSec+5)*time.Second)
 	defer cancel()
 
@@ -479,9 +483,15 @@ func testOnce(xrayPath string, shareLink string, basePort int, timeoutSec int) b
 		return resp.StatusCode == http.StatusNoContent || resp.StatusCode == http.StatusOK
 	}
 
-	// Both Cloudflare HTTP and Google HTTPS must pass
-	return check("http://cp.cloudflare.com/generate_204") &&
-		check("https://www.google.com/generate_204")
+	// Check selected targets
+	if testMode == 3 {
+		return check("http://cp.cloudflare.com/generate_204") &&
+			check("https://www.google.com/generate_204")
+	} else if testMode == 1 {
+		return check("http://cp.cloudflare.com/generate_204")
+	} else {
+		return check("https://www.google.com/generate_204")
+	}
 }
 
 func buildXrayConfig(shareLink string, basePort int) map[string]interface{} {
